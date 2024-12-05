@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "winscard.h": "c",
+    "pcsclite.h": "c"
+  }
+}
