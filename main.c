@@ -78,7 +78,7 @@ my_ogon_handler_establish_context (ogonIf *iface, return_ec ** _return, const DW
 }
 
 static gboolean 
-my_ogon_handler_list_readers (ogonIf *iface, return_lr ** _return, const SCARDCONTEXT_RPC hContext, const LPCSTR_RPC in_mszGroups, const LPSTR_RPC in_mszReaders, const LPDWORD_RPC in_pcchReaders, GError **error){
+my_ogon_handler_list_readers (ogonIf *iface, return_lr ** _return, const SCARDCONTEXT_RPC hContext, GError **error){
   THRIFT_UNUSED_VAR (iface);
   THRIFT_UNUSED_VAR (error);
 
