@@ -63,11 +63,12 @@ my_ogon_handler_establish_context (ogonIf *iface, return_ec ** _return, const DW
   THRIFT_UNUSED_VAR (error);
 
 	SCARDCONTEXT hContext;
-	LONG rv;
 
-	rv = SCardEstablishContext(dwScope, NULL, NULL, &hContext);
+  printf ("Server received SCardEstablishContext dwScope: %ld\n", dwScope);
 
-  printf ("Server received dwScope: %ld\n", dwScope);
+	LONG rv = SCardEstablishContext(dwScope, NULL, NULL, &hContext);
+
+  printf ("SCardEstablishContext return %ld, Server send hContext: %ld\n", rv, hContext);
 
   g_object_set(*_return,
           "retValue", rv,
@@ -78,27 +79,123 @@ my_ogon_handler_establish_context (ogonIf *iface, return_ec ** _return, const DW
 }
 
 static gboolean 
+my_ogon_handler_release_context(ogonIf *iface, LONG_RPC* _return, const SCARDCONTEXT_RPC hContext, GError **error ){
+
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  printf ("Server received SCardReleaseContext dwScope: %ld\n", hContext);
+
+	LONG rv = SCardReleaseContext(hContext);
+
+  printf ("SCardReleaseContext return %ld\n", rv);
+
+  *_return = rv;
+
+  return TRUE;
+}
+
+static gboolean 
 my_ogon_handler_list_readers (ogonIf *iface, return_lr ** _return, const SCARDCONTEXT_RPC hContext, GError **error){
   THRIFT_UNUSED_VAR (iface);
   THRIFT_UNUSED_VAR (error);
 
-  /*LONG rv;
-
-  LPCSTR mszGroups = NULL;
   LPSTR mszReaders = NULL;
   DWORD pcchReaders = SCARD_AUTOALLOCATE;
 
-	rv = SCardListReaders(hContext, mszGroups, mszReaders, &pcchReaders);
+  printf ("Server received SCardListReaders: SCARDCONTEXT=%ld\n", hContext);
 
-  printf ("Server received dwScope: %ld\n", dwScope);
+	LONG rv = SCardListReaders(hContext, NULL, (LPSTR)&mszReaders, &pcchReaders);
+
+  printf ("SCardListReaders return %ld, Server send list readers=%s\n", rv, mszReaders);
 
   g_object_set(*_return,
           "retValue", rv,
-          "gchar * Readers;", hContext,
-          NULL);*/
+          "mszReaders", mszReaders,
+          "pcchReaders", pcchReaders,
+          NULL);
+
+  SCardFreeMemory(hContext, mszReaders);
+  
+  return TRUE;
+}
+
+static gboolean 
+my_ogon_handler_connect (ogonIf *iface, return_c ** _return, const SCARDCONTEXT_RPC hContext, const LPCSTR_RPC szReader, const DWORD_RPC dwShareMode, const DWORD_RPC dwPreferredProtocols, GError **error) {
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  SCARDHANDLE phCard;
+  DWORD pdwActiveProtocol;
+
+  printf ("Server received SCardConnect: SCARDCONTEXT=%ld\n", hContext);
+
+	LONG rv = SCardConnect(hContext, szReader, dwShareMode, dwPreferredProtocols, &phCard, &pdwActiveProtocol);
+
+  printf ("SCardConnect return %ld, Server send SCARDHANDLE=%ld\n", rv, phCard);
+
+  g_object_set(*_return,
+          "retValue", rv,
+          "phCard", phCard,
+          "pdwActiveProtocol", pdwActiveProtocol,
+          NULL);
+  
+  return TRUE;
+}
+
+static gboolean
+my_ogon_handler_disconnect (ogonIf *iface, LONG_RPC* _return, const SCARDHANDLE_RPC hCard, const DWORD_RPC dwDisposition, GError **error) {
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  printf ("Server received SCardDisconnect: SCARDHANDLE=%ld\n", hCard);
+
+  LONG rv = SCardDisconnect(hCard, dwDisposition);
+
+  printf ("SCardDisconnect return %ld\n", rv);
+  
+  *_return = rv;
 
   return TRUE;
 }
+
+static gboolean 
+my_ogon_handler_status (ogonIf *iface, return_s ** _return, const SCARDHANDLE_RPC hCard, GError **error) {
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  char Reader[MAX_READERNAME];
+  DWORD ReaderLen = MAX_READERNAME;
+  DWORD pdwState;
+  DWORD pdwProtocol;
+  BYTE pbAtr[MAX_ATR_SIZE] = "";
+  DWORD pcbAtrLen = MAX_ATR_SIZE;
+
+  
+
+  printf("Server received SCardStatus: SCARDHANDLE=%ld\n", hCard);
+
+  LONG rv = SCardStatus(hCard, Reader, &ReaderLen, &pdwState, &pdwProtocol, pbAtr, &pcbAtrLen);
+
+  GByteArray *atr = g_byte_array_new();
+  atr = g_byte_array_append(atr, pbAtr, pcbAtrLen);
+
+  g_object_set(*_return,
+        "retValue", rv,
+        "szReaderName", Reader,
+        "pcchReaderLen", ReaderLen,
+        "pdwState", pdwState, 
+        "pdwProtocol", pdwProtocol,
+        "pcbAtrLen", pcbAtrLen,
+        "pbAtr", atr,
+        NULL);
+
+  printf ("SCardStatus return %ld\n", rv);
+  
+
+  return TRUE;
+}
+
 
 static void
 my_ogon_handler_init (MyOgonHandler *self)
@@ -112,8 +209,11 @@ my_ogon_handler_class_init (MyOgonHandlerClass *klass)
     OGON_HANDLER_CLASS (klass);
 
   ogon_handler_class->establish_context =     my_ogon_handler_establish_context;
+  ogon_handler_class->release_context =       my_ogon_handler_release_context;
   ogon_handler_class->list_readers =          my_ogon_handler_list_readers;
-
+  ogon_handler_class->connect =               my_ogon_handler_connect;
+  ogon_handler_class->disconnect =            my_ogon_handler_disconnect;
+  ogon_handler_class->status =                my_ogon_handler_status;
 }
 
 int
