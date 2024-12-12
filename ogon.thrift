@@ -6,6 +6,7 @@ typedef string  LPSTR_RPC;
 typedef string  LPCSTR_RPC;
 typedef i64     SCARDHANDLE_RPC;
 typedef binary  LPBYTE_RPC
+typedef binary  LPVOID_RPC
 
 struct return_ec {
   1: LONG_RPC           retValue
@@ -65,6 +66,16 @@ struct return_gsc {
   2: list<scard_readerstate_rpc>  rgReaderStates
 }
 
+struct return_ga {
+  1: LONG_RPC     retValue
+  2: LPBYTE_RPC   pbAttr
+}
+
+struct return_ctrl {
+  1: LONG_RPC     retValue
+  2: LPVOID_RPC   pbRecvBuffer
+}
+
 service ogon {
   return_ec   EstablishContext(1: DWORD_RPC dwScope)
   LONG_RPC    ReleaseContext(1: SCARDCONTEXT_RPC hContext)
@@ -75,7 +86,14 @@ service ogon {
   return_r    Reconnect(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwShareMode, 3:DWORD_RPC dwPreferredProtocols, 4:DWORD_RPC dwInitialization)
   LONG_RPC    Disconnect(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwDisposition)
   
-  return_s    Status(1: SCARDHANDLE_RPC hCard)
+  return_s    Status(1: SCARDHANDLE_RPC hCard, 2:DWORD_RPC pcchReaderLen, 3:DWORD_RPC pcbAtrLen)
   return_gsc  GetStatusChange(1: SCARDCONTEXT_RPC hContext, 2:DWORD_RPC dwTimeout, 3:list<scard_readerstate_rpc> rgReaderStates,  4:DWORD_RPC cReaders)
   return_t    Transmit(1: SCARDHANDLE_RPC hCard, 2:scard_io_request_rpc pioSendPci, 3:LPBYTE_RPC pbSendBuffer, 4: DWORD_RPC pcbRecvLength)
+  LONG_RPC    BeginTransaction(1:SCARDHANDLE_RPC hCard)
+  LONG_RPC    EndTransaction(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwDisposition)
+
+  return_ga   GetAttrib(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwAttrId, 3:DWORD_RPC pcbAttrLen);
+  return_ctrl Control(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwControlCode, 3:LPVOID_RPC pbSendBuffer, 4:DWORD_RPC cbRecvLength)
+  LONG_RPC    Cancel(1:SCARDCONTEXT_RPC hContext)
+  LONG_RPC    IsValidContext(1:SCARDCONTEXT_RPC hContext)
 }
