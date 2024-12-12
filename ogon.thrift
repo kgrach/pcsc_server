@@ -76,6 +76,6 @@ service ogon {
   LONG_RPC    Disconnect(1:SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwDisposition)
   
   return_s    Status(1: SCARDHANDLE_RPC hCard)
-  return_gsc  GetStatusChange(1: SCARDHANDLE_RPC hCard, 2:DWORD_RPC dwTimeout, 3:list<scard_readerstate_rpc> rgReaderStates,  4:DWORD_RPC cReaders)
+  return_gsc  GetStatusChange(1: SCARDCONTEXT_RPC hContext, 2:DWORD_RPC dwTimeout, 3:list<scard_readerstate_rpc> rgReaderStates,  4:DWORD_RPC cReaders)
   return_t    Transmit(1: SCARDHANDLE_RPC hCard, 2:scard_io_request_rpc pioSendPci, 3:LPBYTE_RPC pbSendBuffer, 4: DWORD_RPC pcbRecvLength)
 }
