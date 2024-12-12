@@ -143,6 +143,27 @@ my_ogon_handler_connect (ogonIf *iface, return_c ** _return, const SCARDCONTEXT_
   return TRUE;
 }
 
+static gboolean 
+my_ogon_handler_reconnect (ogonIf *iface, return_r ** _return, const SCARDHANDLE_RPC hCard, const DWORD_RPC dwShareMode, const DWORD_RPC dwPreferredProtocols, const DWORD_RPC dwInitialization, GError **error) {
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  DWORD pdwActiveProtocol;
+
+  printf ("Server received SCardReconnect: SCARDHANDLE=%ld\n", hCard);
+
+	LONG rv = SCardReconnect(hCard, dwShareMode, dwPreferredProtocols, dwInitialization, &pdwActiveProtocol);
+
+  printf ("SCardReconnect return %ld, Server send pdwActiveProtocol=%ld\n", rv, pdwActiveProtocol);
+
+  g_object_set(*_return,
+          "retValue", rv,
+          "pdwActiveProtocol", pdwActiveProtocol,
+          NULL);
+  
+  return TRUE;
+}
+
 static gboolean
 my_ogon_handler_disconnect (ogonIf *iface, LONG_RPC* _return, const SCARDHANDLE_RPC hCard, const DWORD_RPC dwDisposition, GError **error) {
   THRIFT_UNUSED_VAR (iface);
@@ -171,8 +192,6 @@ my_ogon_handler_status (ogonIf *iface, return_s ** _return, const SCARDHANDLE_RP
   BYTE pbAtr[MAX_ATR_SIZE] = "";
   DWORD pcbAtrLen = MAX_ATR_SIZE;
 
-  
-
   printf("Server received SCardStatus: SCARDHANDLE=%ld\n", hCard);
 
   LONG rv = SCardStatus(hCard, Reader, &ReaderLen, &pdwState, &pdwProtocol, pbAtr, &pcbAtrLen);
@@ -186,16 +205,52 @@ my_ogon_handler_status (ogonIf *iface, return_s ** _return, const SCARDHANDLE_RP
         "pcchReaderLen", ReaderLen,
         "pdwState", pdwState, 
         "pdwProtocol", pdwProtocol,
-        "pcbAtrLen", pcbAtrLen,
         "pbAtr", atr,
         NULL);
 
   printf ("SCardStatus return %ld\n", rv);
   
-
   return TRUE;
 }
 
+static gboolean 
+my_ogon_handler_transmit (ogonIf *iface, return_t ** _return, const SCARDHANDLE_RPC hCard, const scard_io_request_rpc * pioSendPci, const LPBYTE_RPC pbSendBuffer, const DWORD_RPC pcbRecvLength, GError **error) {
+  THRIFT_UNUSED_VAR (iface);
+  THRIFT_UNUSED_VAR (error);
+
+  SCARD_IO_REQUEST ioSendPci, ioRecvPci;
+
+  LPCBYTE sendBuffer = pbSendBuffer->data;
+  DWORD sendBufferLength = pbSendBuffer->len;
+  DWORD recvBufferLength;
+
+  ioSendPci.dwProtocol = pioSendPci->dwProtocol;
+  ioSendPci.cbPciLength = pioSendPci->cbPciLength;
+
+  printf("Server received SCardTransmit: SCARDHANDLE=%ld\n", hCard);
+
+  GByteArray *recv = g_byte_array_new();
+  recv = g_byte_array_set_size(recv, pcbRecvLength);
+
+  LONG rv = SCardTransmit(hCard, &ioSendPci, sendBuffer, sendBufferLength, &ioRecvPci, recv->data, &recvBufferLength);
+
+  recv = g_byte_array_set_size(recv, recvBufferLength);
+
+  scard_io_request_rpc *ioSendPciRPC = g_object_new(TYPE_SCARD_IO_REQUEST_RPC, NULL);
+
+  ioSendPciRPC->dwProtocol = ioRecvPci.dwProtocol;
+  ioSendPciRPC->cbPciLength = ioRecvPci.cbPciLength;
+
+  g_object_set(*_return,
+        "retValue", rv,
+        "pbRecvBuffer",    recv,
+        "pioRecvPci", ioSendPciRPC,
+        NULL);
+
+  printf ("SCardTransmit return %ld\n", rv);
+  
+  return TRUE;
+}
 
 static void
 my_ogon_handler_init (MyOgonHandler *self)
@@ -212,8 +267,10 @@ my_ogon_handler_class_init (MyOgonHandlerClass *klass)
   ogon_handler_class->release_context =       my_ogon_handler_release_context;
   ogon_handler_class->list_readers =          my_ogon_handler_list_readers;
   ogon_handler_class->connect =               my_ogon_handler_connect;
+  ogon_handler_class->reconnect =             my_ogon_handler_reconnect;
   ogon_handler_class->disconnect =            my_ogon_handler_disconnect;
   ogon_handler_class->status =                my_ogon_handler_status;
+  ogon_handler_class->transmit =              my_ogon_handler_transmit;
 }
 
 int
