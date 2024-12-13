@@ -58,18 +58,16 @@ public:
     LPSTR szReaderName = NULL;
     DWORD szReaderNameLen = pcchReaders;
 
-    std::shared_ptr<std::string> readerBuff = nullptr;
-
-    if(SCARD_AUTOALLOCATE != szReaderNameLen) {
-
-      readerBuff = std::make_shared<std::string>();
-      readerBuff->resize(szReaderNameLen);
-      szReaderName = readerBuff->data();
-    }
+    std::string readerBuf;
 
     printf ("Server received SCardListReaders: SCARDCONTEXT=%ld\n", hContext);
 
-    LONG rv = SCardListReaders(hContext, NULL, (LPSTR)&szReaderName, &szReaderNameLen);
+    if(SCARD_AUTOALLOCATE != szReaderNameLen) {
+      readerBuf.resize(szReaderNameLen);
+      szReaderName = readerBuf.data();
+    }
+
+    LONG rv = SCardListReaders(hContext, NULL, (readerBuf.empty() ? (LPSTR)&szReaderName : szReaderName), &szReaderNameLen);
 
     printf ("SCardListReaders return %ld, Server send list readers=%s\n", rv, szReaderName);
 
