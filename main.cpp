@@ -52,24 +52,61 @@ public:
     return rv;
   }
 
-  void ListReaders(return_lr& _return, const SCARDCONTEXT_RPC hContext) {
+  void ListReaders(return_lr& _return, const SCARDCONTEXT_RPC hContext, const DWORD_RPC pcchReaders) {
     // Your implementation goes here
-    printf("ListReaders\n");
 
-    LPSTR mszReaders = NULL;
-    DWORD pcchReaders = SCARD_AUTOALLOCATE;
+    LPSTR szReaderName = NULL;
+    DWORD szReaderNameLen = pcchReaders;
+
+    std::shared_ptr<std::string> readerBuff = nullptr;
+
+    if(SCARD_AUTOALLOCATE != szReaderNameLen) {
+
+      readerBuff = std::make_shared<std::string>();
+      readerBuff->resize(szReaderNameLen);
+      szReaderName = readerBuff->data();
+    }
 
     printf ("Server received SCardListReaders: SCARDCONTEXT=%ld\n", hContext);
 
-    LONG rv = SCardListReaders(hContext, NULL, (LPSTR)&mszReaders, &pcchReaders);
+    LONG rv = SCardListReaders(hContext, NULL, (LPSTR)&szReaderName, &szReaderNameLen);
 
-    printf ("SCardListReaders return %ld, Server send list readers=%s\n", rv, mszReaders);
+    printf ("SCardListReaders return %ld, Server send list readers=%s\n", rv, szReaderName);
 
     _return.retValue = rv;
-    _return.mszReaders = mszReaders;
-    _return.pcchReaders = pcchReaders;
+    _return.mszReaders = szReaderName;
 
-    SCardFreeMemory(hContext, mszReaders);
+    if(SCARD_AUTOALLOCATE == pcchReaders) {
+      SCardFreeMemory(hContext, szReaderName);
+    }
+  }
+
+  void ListReaderGroups(return_lrg& _return, const SCARDCONTEXT_RPC hContext, const DWORD_RPC pcchGroups) {
+    // Your implementation goes here
+    LPSTR szGroups = NULL;
+    DWORD szGroupsNameLen = pcchGroups;
+
+    std::shared_ptr<std::string> readerBuff = nullptr;
+
+    if(SCARD_AUTOALLOCATE != szGroupsNameLen) {
+
+      readerBuff = std::make_shared<std::string>();
+      readerBuff->resize(szGroupsNameLen);
+      szGroups = readerBuff->data();
+    }
+
+    printf ("Server received SCardListReaderGroups: SCARDCONTEXT=%ld\n", hContext);
+
+    LONG rv = SCardListReaderGroups(hContext, (LPSTR)&szGroups, &szGroupsNameLen);
+
+    printf ("SCardListReaderGroups return %ld, Server send list groups=%s\n", rv, szGroups);
+
+    _return.retValue = rv;
+    _return.mszGroups = szGroups;
+
+    if(SCARD_AUTOALLOCATE == pcchGroups) {
+      SCardFreeMemory(hContext, szGroups);
+    }
   }
 
   void Connect(return_c& _return, const SCARDCONTEXT_RPC hContext, const LPCSTR_RPC& szReader, const DWORD_RPC dwShareMode, const DWORD_RPC dwPreferredProtocols) {
@@ -132,11 +169,6 @@ public:
   void Status(return_s& _return, const SCARDHANDLE_RPC hCard, const DWORD_RPC pcchReaderLen, const DWORD_RPC pcbAtrLen) {
     // Your implementation goes here
 
-    /*char Reader[MAX_READERNAME];
-    DWORD ReaderLen = MAX_READERNAME;
-    BYTE pbAtr[MAX_ATR_SIZE] = "";
-    DWORD pcbAtrLen = MAX_ATR_SIZE;*/
-
     DWORD pdwState;
     DWORD pdwProtocol;
 
@@ -170,7 +202,6 @@ public:
 
     _return.retValue = rv;
     _return.szReaderName = szReaderName;
-    _return.pcchReaderLen = szReaderNameLen;
     _return.pdwState = pdwState;
     _return.pdwProtocol = pdwProtocol;
     _return.pbAtr = std::string((char*)pAtr, AtrLen);
