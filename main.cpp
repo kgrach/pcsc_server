@@ -11,6 +11,7 @@ using namespace ::apache::thrift::server;
 
 #include <PCSC/winscard.h>
 #include <mutex>
+#include <iostream>
 
 class ogonHandler : virtual public ogonIf {
 
@@ -72,7 +73,7 @@ public:
     printf ("SCardListReaders return %ld, Server send list readers=%s\n", rv, szReaderName);
 
     _return.retValue = rv;
-    _return.mszReaders = szReaderName;
+    _return.mszReaders = std::string(szReaderName, szReaderNameLen);
 
     if(SCARD_AUTOALLOCATE == pcchReaders) {
       SCardFreeMemory(hContext, szReaderName);
@@ -84,23 +85,21 @@ public:
     LPSTR szGroups = NULL;
     DWORD szGroupsNameLen = pcchGroups;
 
-    std::shared_ptr<std::string> readerBuff = nullptr;
+    std::string readerBuf;
 
     if(SCARD_AUTOALLOCATE != szGroupsNameLen) {
-
-      readerBuff = std::make_shared<std::string>();
-      readerBuff->resize(szGroupsNameLen);
-      szGroups = readerBuff->data();
+      readerBuf.resize(szGroupsNameLen);
+      szGroups = readerBuf.data();
     }
 
     printf ("Server received SCardListReaderGroups: SCARDCONTEXT=%ld\n", hContext);
 
-    LONG rv = SCardListReaderGroups(hContext, (LPSTR)&szGroups, &szGroupsNameLen);
+    LONG rv = SCardListReaderGroups(hContext, (readerBuf.empty() ? (LPSTR)&szGroups : szGroups), &szGroupsNameLen);
 
     printf ("SCardListReaderGroups return %ld, Server send list groups=%s\n", rv, szGroups);
 
     _return.retValue = rv;
-    _return.mszGroups = szGroups;
+    _return.mszGroups = std::string(szGroups, szGroupsNameLen);
 
     if(SCARD_AUTOALLOCATE == pcchGroups) {
       SCardFreeMemory(hContext, szGroups);
@@ -368,7 +367,11 @@ int main(int argc, char **argv) {
   ::std::shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 
   TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
-  server.serve();
+  try{
+    server.serve();
+  }catch(...){
+    std::cout << "here";
+  }
   return 0;
 }
 

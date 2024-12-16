@@ -19,12 +19,12 @@ struct return_rc {
 
 struct return_lr {
   1: LONG_RPC         retValue
-  2: LPSTR_RPC        mszReaders
+  2: LPBYTE_RPC       mszReaders
 }
 
 struct return_lrg {
   1: LONG_RPC         retValue
-  2: LPSTR_RPC        mszGroups
+  2: LPBYTE_RPC       mszGroups
 }
 
 struct return_c {
@@ -35,10 +35,10 @@ struct return_c {
 
 struct return_s {
   1: LONG_RPC           retValue
-  2: LPSTR_RPC          szReaderName
-  4: DWORD_RPC          pdwState
-  5: DWORD_RPC          pdwProtocol
-  6: LPBYTE_RPC         pbAtr
+  2: LPBYTE_RPC         szReaderName
+  3: DWORD_RPC          pdwState
+  4: DWORD_RPC          pdwProtocol
+  5: LPBYTE_RPC         pbAtr
 }
 
 struct scard_io_request_rpc {
@@ -58,7 +58,7 @@ struct return_r {
 }
 
 struct scard_readerstate_rpc {
-  1:LPSTR_RPC     szReader
+  1:LPBYTE_RPC    szReader
   2:DWORD_RPC     dwCurrentState
 	3:DWORD_RPC     dwEventState
   4:LPBYTE_RPC    rgbAtr
