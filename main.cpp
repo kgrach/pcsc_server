@@ -172,33 +172,31 @@ public:
     LPSTR szReaderName = NULL;
     DWORD szReaderNameLen = pcchReaderLen;
 
-    std::shared_ptr<std::string> readerBuff = nullptr;
+    std::string readerBuf;
 
     if(SCARD_AUTOALLOCATE != szReaderNameLen) {
-
-      readerBuff = std::make_shared<std::string>();
-      readerBuff->resize(szReaderNameLen);
-      szReaderName = readerBuff->data();
+      readerBuf.resize(szReaderNameLen);
+      szReaderName = readerBuf.data();
     }
 
     LPBYTE pAtr = NULL;
     DWORD AtrLen = pcbAtrLen;
 
-    std::shared_ptr<std::string> atrBuff = nullptr;
+    std::string atrBuf;
 
     if(SCARD_AUTOALLOCATE != AtrLen) {
-
-      atrBuff = std::make_shared<std::string>();
-      atrBuff->resize(AtrLen);
-      pAtr = (unsigned char*)atrBuff->data();
+      atrBuf.resize(AtrLen);
+      pAtr = (unsigned char*)atrBuf.data();
     }
 
     printf("Server received SCardStatus: SCARDHANDLE=%ld\n", hCard);
 
-    LONG rv = SCardStatus(hCard, szReaderName, &szReaderNameLen, &pdwState, &pdwProtocol, pAtr, &AtrLen);
+    LONG rv = SCardStatus(hCard, (readerBuf.empty() ? (LPSTR)&szReaderName : szReaderName), &szReaderNameLen, 
+                                  &pdwState, &pdwProtocol, 
+                                 (atrBuf.empty() ? (LPBYTE)&pAtr : pAtr), &AtrLen);
 
     _return.retValue = rv;
-    _return.szReaderName = szReaderName;
+    _return.szReaderName = std::string(szReaderName, szReaderNameLen);
     _return.pdwState = pdwState;
     _return.pdwProtocol = pdwProtocol;
     _return.pbAtr = std::string((char*)pAtr, AtrLen);
@@ -299,18 +297,17 @@ public:
     LPBYTE pAttr = NULL;
     DWORD AttrLen = pcbAttrLen;
 
-    std::shared_ptr<std::string> attrBuff = nullptr;
+    std::string attrBuf;
 
     if(SCARD_AUTOALLOCATE != AttrLen) {
 
-      attrBuff = std::make_shared<std::string>();
-      attrBuff->resize(AttrLen);
-      pAttr = (unsigned char*)attrBuff->data();
+      attrBuf.resize(AttrLen);
+      pAttr = (unsigned char*)attrBuf.data();
     }
 
     printf("Server received SCardGetAttrib: hCard=%ld, pcbAttrLen=%ld\n", hCard, pcbAttrLen);
 
-    LONG rv = SCardGetAttrib(hCard, dwAttrId, pAttr, &AttrLen);
+    LONG rv = SCardGetAttrib(hCard, dwAttrId, (attrBuf.empty() ? (LPBYTE)&pAttr : pAttr), &AttrLen);
 
     printf("SCardGetAttrib return %ld, pAttr=%p\n", rv, pAttr);
 
