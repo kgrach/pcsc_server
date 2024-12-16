@@ -1,0 +1,7 @@
+## Install depends 
+ # Redos8
+ 1) sudo dnf install pcsc-lite-devel pcsc-lite-libs pcsc-lite
+ 2) sudo dnf install thrift thrift-devel thrift-glib
+
+## Build thrift stabs
+ thrift --gen cpp ogon.thrift
