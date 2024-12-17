@@ -226,10 +226,6 @@ public:
     for (int i = 0; i < cReaders; i++) {
       inReaderStates[i].szReader = rgReaderStates[i].szReader.c_str();
       inReaderStates[i].dwCurrentState = rgReaderStates[i].dwCurrentState;
-      inReaderStates[i].dwEventState = rgReaderStates[i].dwEventState;
-      inReaderStates[i].cbAtr = rgReaderStates[i].rgbAtr.length();
-
-      memcpy(inReaderStates[i].rgbAtr, rgReaderStates[i].rgbAtr.data(), rgReaderStates[i].rgbAtr.length());
     }
 
     LONG rv = SCardGetStatusChange(hContext, dwTimeout, inReaderStates.data(), cReaders);
@@ -237,8 +233,6 @@ public:
     std::vector<scard_readerstate_rpc> outReaderStates(cReaders);
 
     for (int i = 0; i < cReaders; i++) {
-      outReaderStates[i].szReader = inReaderStates[i].szReader;
-      outReaderStates[i].dwCurrentState = inReaderStates[i].dwCurrentState;
       outReaderStates[i].dwEventState = inReaderStates[i].dwEventState;
       outReaderStates[i].rgbAtr = std::string((char*)inReaderStates[i].rgbAtr, inReaderStates[i].cbAtr);
     }
