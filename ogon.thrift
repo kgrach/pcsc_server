@@ -58,7 +58,7 @@ struct return_r {
 }
 
 struct scard_readerstate_rpc {
-  1:LPBYTE_RPC    szReader
+  1:LPSTR_RPC     szReader
   2:DWORD_RPC     dwCurrentState
 	3:DWORD_RPC     dwEventState
   4:LPBYTE_RPC    rgbAtr
