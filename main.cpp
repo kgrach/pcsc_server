@@ -1,6 +1,7 @@
 #include "gen-cpp/ogon.h"
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
+#include <thrift/server/TThreadedServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 
@@ -201,6 +202,11 @@ public:
     _return.pdwProtocol = pdwProtocol;
     _return.pbAtr = std::string((char*)pAtr, AtrLen);
 
+    printf ("SCardStatus AtrLen=%ld ", AtrLen);
+    
+    for (DWORD i=0; i<AtrLen; i++)
+		  printf(" %02X", pAtr[i]);
+
     printf ("SCardStatus return %ld\n", rv);
 
     // This is code for current project only, it don't need into ogon
@@ -349,15 +355,40 @@ public:
   }
 };
 
+class OgonHandlerFactory : virtual public ogonIfFactory {
+ public:
+  ~OgonHandlerFactory() override = default;
+  ogonIf* getHandler(const ::apache::thrift::TConnectionInfo& connInfo) override
+  {
+    /*std::shared_ptr<TSocket> sock = std::dynamic_pointer_cast<TSocket>(connInfo.transport);
+    cout << "Incoming connection\n";
+    cout << "\tSocketInfo: "  << sock->getSocketInfo() << "\n";
+    cout << "\tPeerHost: "    << sock->getPeerHost() << "\n";
+    cout << "\tPeerAddress: " << sock->getPeerAddress() << "\n";
+    cout << "\tPeerPort: "    << sock->getPeerPort() << "\n";*/
+    return new ogonHandler();
+  }
+  void releaseHandler( ogonIf* handler) override {
+    delete handler;
+  }
+};
+
 int main(int argc, char **argv) {
   int port = 9091;
-  ::std::shared_ptr<ogonHandler> handler(new ogonHandler());
+  /*::std::shared_ptr<ogonHandler> handler(new ogonHandler());
   ::std::shared_ptr<TProcessor> processor(new ogonProcessor(handler));
   ::std::shared_ptr<TServerTransport> serverTransport(new TServerSocket(port));
   ::std::shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
   ::std::shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 
-  TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
+  TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);*/
+
+  TThreadedServer server(
+    std::make_shared<ogonProcessorFactory>(std::make_shared<OgonHandlerFactory>()),
+    std::make_shared<TServerSocket>(port), //port
+    std::make_shared<TBufferedTransportFactory>(),
+    std::make_shared<TBinaryProtocolFactory>());
+
   try{
     server.serve();
   }catch(...){
